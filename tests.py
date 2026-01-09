@@ -28,14 +28,30 @@ class TestBooksCollector:
     # напиши свои тесты ниже
     # чтобы тесты были независимыми в каждом из них создавай отдельный экземпляр класса BooksCollector()
 
-    # проверяем, что пустое имя и имя длиннее 40 символов не добавляются (параметризация двух значений)
-    @pytest.mark.parametrize('book_name', ['', 'A' * 41])
-    def test_add_new_book_invalid_title_not_added(self, book_name):
+    # проверяем границу длины: пустое имя и >40 символов не добавляются, ровно 40 символов добавляется (параметризация трех значений)
+    @pytest.mark.parametrize(
+        'book_name, expected',
+        [
+            ('', {}),  # пустая строка игнорируется
+            ('A' * 41, {}),  # имя длиннее 40 игнорируется
+            ('A' * 40, {'A' * 40: ''}),  # имя ровно 40 символов добавляется
+        ],
+    )
+    def test_add_new_book_invalid_title_not_added(self, book_name, expected):
         collector = BooksCollector()
 
         collector.add_new_book(book_name)
 
-        assert collector.get_books_genre() == {}
+        assert collector.get_books_genre() == expected
+
+    # проверяем, что повторное добавление одной и той же книги не создает дубликат в словаре
+    def test_add_new_book_duplicate_not_added(self):
+        collector = BooksCollector()
+
+        collector.add_new_book('Три товарища')
+        collector.add_new_book('Три товарища')
+
+        assert list(collector.get_books_genre().keys()) == ['Три товарища']
 
     # проверяем, что жанр ставится только если он разрешен, иначе книга остается без жанра (параметризация валидного и невалидного жанров)
     @pytest.mark.parametrize(
@@ -105,6 +121,14 @@ class TestBooksCollector:
         collector.add_book_in_favorites('Несуществующая книга')
 
         assert collector.get_list_of_favorites_books() == ['Дюна']
+
+    # проверяем, что попытка добавить в избранное книгу, отсутствующую в коллекции, не меняет список
+    def test_add_book_in_favorites_ignores_unknown_book(self):
+        collector = BooksCollector()
+
+        collector.add_book_in_favorites('Книга не из коллекции')
+
+        assert collector.get_list_of_favorites_books() == []
 
     # проверяем, что удаление из избранного убирает книгу и итоговый список актуален
     def test_delete_book_from_favorites_removes_book(self):
